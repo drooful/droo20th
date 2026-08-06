@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Sign in to manage gifts for droo's 20th birthday."
+    >
+
+    <title>Account | droo's 20th Birthday</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script type="module" src="auth.js"></script>
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="container">
+            <h1 class="site-title">
+                droo's 20th Birthday
+            </h1>
+
+            <nav
+                class="site-nav"
+                aria-label="Main navigation"
+            >
+                <ul>
+                    <li>
+                        <a href="index.html">Home</a>
+                    </li>
+
+                    <li>
+                        <a href="details.html">Details</a>
+                    </li>
+
+                    <li>
+                        <a href="wishlist.html">Wishlist</a>
+                    </li>
+
+                    <li>
+                        <a
+                            href="account.html"
+                            aria-current="page"
+                        >
+                            Account
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <section
+            class="section account-page"
+            aria-labelledby="account-title"
+        >
+            <div class="container">
+                <header class="section-heading">
+                    <p class="eyebrow">Your account</p>
+
+                    <h2 id="account-title">
+                        Sign in to manage your gifts
+                    </h2>
+
+                    <p>
+                        Sign in with Google to claim or unclaim gifts
+                        from any browser or device.
+                    </p>
+                </header>
+
+                <p
+                    id="auth-status"
+                    class="auth-status"
+                    aria-live="polite"
+                ></p>
+
+                <section
+                    id="signed-out-view"
+                    class="auth-card"
+                >
+                    <h3>Continue with Google</h3>
+
+                    <p>
+                        Your account information will not be displayed
+                        to other guests.
+                    </p>
+
+                    <button
+                        id="google-signin-button"
+                        class="button google-signin-button"
+                        type="button"
+                    >
+                        Sign in with Google
+                    </button>
+                </section>
+
+                <section
+                    id="signed-in-view"
+                    class="auth-card signed-in-card"
+                    hidden
+                >
+                    <p class="eyebrow">Signed in</p>
+
+                    <h3>Your account is ready</h3>
+
+                    <p>
+                        Signed in as:
+                        <strong id="account-email"></strong>
+                    </p>
+
+                    <div class="account-actions">
+                        <a
+                            id="continue-link"
+                            class="button button--primary"
+                            href="wishlist.html"
+                        >
+                            Continue to wishlist
+                        </a>
+
+                        <button
+                            id="signout-button"
+                            class="button button--secondary"
+                            type="button"
+                        >
+                            Sign out
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
