@@ -1,4 +1,5 @@
 import {
+    collection,
     doc,
     onSnapshot,
     runTransaction,
@@ -17,16 +18,22 @@ import {
 } from "./firebase-config.js";
 
 
-const wishlistItems =
-    document.querySelectorAll(".wishlist-item");
+const wishlistGrid =
+    document.querySelector("#wishlist-grid");
 
 const wishlistStatus =
     document.querySelector("#wishlist-status");
 
-const giftDataById = new Map();
+
+const giftsById = new Map();
 
 let currentUser = null;
+let hasLoadedWishlist = false;
 
+
+/* ========================================
+   WISHLIST MESSAGES
+   ======================================== */
 
 function showWishlistMessage(
     message,
@@ -45,31 +52,244 @@ function showWishlistMessage(
 }
 
 
-function getGiftName(item) {
-    const heading = item.querySelector("h2");
-
-    return heading
-        ? heading.textContent.trim()
-        : "Gift";
+function showDefaultWishlistMessage() {
+    if (currentUser) {
+        showWishlistMessage(
+            "You are signed in and can manage your gift claims."
+        );
+    } else {
+        showWishlistMessage(
+            "Sign in with Google to claim a gift."
+        );
+    }
 }
 
 
-function displayGift(
-    item,
-    giftData
+/* ========================================
+   FIRESTORE VALUE HELPERS
+   ======================================== */
+
+function getTextValue(
+    value,
+    fallback
 ) {
-    const statusText =
-        item.querySelector(".gift-status-text");
-
-    const claimButton =
-        item.querySelector(".claim-button");
-
-    if (!statusText || !claimButton) {
-        return;
+    if (
+        typeof value === "string" &&
+        value.trim()
+    ) {
+        return value.trim();
     }
 
+    return fallback;
+}
+
+function formatGiftPrice(
+    value,
+    currency = "PHP"
+) {
+    const numericPrice =
+        typeof value === "number"
+            ? value
+            : Number(value);
+
+
+    if (
+        !Number.isFinite(numericPrice) ||
+        numericPrice < 0
+    ) {
+        return "";
+    }
+
+
+    const currencyCode =
+        typeof currency === "string" &&
+        currency.trim()
+            ? currency.trim().toUpperCase()
+            : "PHP";
+
+
+    try {
+        return new Intl.NumberFormat(
+            "en-PH",
+            {
+                style: "currency",
+                currency: currencyCode,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        ).format(numericPrice);
+    } catch (error) {
+        return `₱${numericPrice.toLocaleString(
+            "en-PH",
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        )}`;
+    }
+}
+
+
+/*
+    Allows normal HTTPS/HTTP links and relative
+    image paths such as assets/wishlist/book.jpg.
+
+    Unsafe protocols such as javascript: are rejected.
+*/
+
+function getSafeUrl(value) {
+    if (
+        typeof value !== "string" ||
+        !value.trim()
+    ) {
+        return "";
+    }
+
+    try {
+        const url = new URL(
+            value.trim(),
+            window.location.href
+        );
+
+        if (
+            url.protocol === "https:" ||
+            url.protocol === "http:"
+        ) {
+            return url.href;
+        }
+    } catch (error) {
+        console.warn(
+            "Invalid wishlist URL:",
+            value
+        );
+    }
+
+    return "";
+}
+
+
+/* ========================================
+   CREATE THE GIFT IMAGE
+   ======================================== */
+
+function createGiftImage(
+    giftName,
+    imageUrl,
+    productUrl
+) {
+    if (!imageUrl) {
+        return null;
+    }
+
+
+    const image =
+        document.createElement("img");
+
+    image.className = "gift-image";
+    image.src = imageUrl;
+    image.alt = giftName;
+    image.loading = "lazy";
+
+
+    /*
+        When a product URL is available,
+        make the image itself clickable.
+    */
+
+    if (productUrl) {
+        const imageLink =
+            document.createElement("a");
+
+        imageLink.className =
+            "gift-image-link";
+
+        imageLink.href = productUrl;
+        imageLink.target = "_blank";
+        imageLink.rel =
+            "noopener noreferrer";
+
+        imageLink.setAttribute(
+            "aria-label",
+            `View ${giftName} product page`
+        );
+
+        imageLink.append(image);
+
+
+        image.addEventListener(
+            "error",
+
+            function () {
+                imageLink.remove();
+            }
+        );
+
+
+        return imageLink;
+    }
+
+
+    const imageFrame =
+        document.createElement("div");
+
+    imageFrame.className =
+        "gift-image-frame";
+
+    imageFrame.append(image);
+
+
+    image.addEventListener(
+        "error",
+
+        function () {
+            imageFrame.remove();
+        }
+    );
+
+
+    return imageFrame;
+}
+
+
+/* ========================================
+   CREATE ONE WISHLIST CARD
+   ======================================== */
+
+function createGiftCard(
+    giftId,
+    giftData
+) {
+    const giftName =
+        getTextValue(
+            giftData.name,
+            "Unnamed Gift"
+        );
+
+    const giftDescription =
+        getTextValue(
+            giftData.description,
+            "No description has been added."
+        );
+
+    const imageUrl =
+        getSafeUrl(
+            giftData.imageUrl
+        );
+
+    const productUrl =
+        getSafeUrl(
+            giftData.productUrl
+        );
+    
+    const giftPrice =
+    formatGiftPrice(
+        giftData.price,
+        giftData.currency
+    );
+
+
     const isClaimed =
-        giftData?.claimed === true;
+        giftData.claimed === true;
 
     const isOwnedByCurrentUser =
         Boolean(currentUser) &&
@@ -77,10 +297,144 @@ function displayGift(
         giftData.claimedBy === currentUser.uid;
 
 
+    const item =
+        document.createElement("article");
+
+    item.className = "wishlist-item";
+    item.dataset.giftId = giftId;
+
     item.classList.toggle(
         "is-claimed",
         isClaimed
     );
+
+
+    /*
+        Image or clickable image
+    */
+
+    const imageElement =
+        createGiftImage(
+            giftName,
+            imageUrl,
+            productUrl
+        );
+
+    if (imageElement) {
+        item.append(imageElement);
+    }
+
+
+    /*
+        Gift name
+    */
+
+    const heading =
+        document.createElement("h2");
+
+    heading.textContent = giftName;
+
+    item.append(heading);
+
+
+    /*
+        Gift description
+    */
+
+    const description =
+        document.createElement("p");
+
+    description.className =
+        "gift-description";
+
+    description.textContent =
+        giftDescription;
+
+    item.append(description);
+
+/*
+    Gift price
+*/
+
+    if (giftPrice) {
+        const price =
+            document.createElement("p");
+
+        price.className =
+            "gift-price";
+
+        price.textContent =
+            giftPrice;
+
+        item.append(price);
+    }
+
+
+/*
+    Product page link
+
+    This remains visible even when the card
+    does not have an image.
+*/
+
+    if (productUrl) {
+        const productLink =
+            document.createElement("a");
+
+        productLink.className =
+            "gift-product-link";
+
+        productLink.href = productUrl;
+        productLink.target = "_blank";
+        productLink.rel =
+            "noopener noreferrer";
+
+        productLink.textContent =
+            "View gift details ↗";
+
+        item.append(productLink);
+    }
+
+
+    /*
+        Claim status
+    */
+
+    const status =
+        document.createElement("p");
+
+    status.className =
+        "gift-status";
+
+    status.append(
+        document.createTextNode(
+            "Status: "
+        )
+    );
+
+
+    const statusText =
+        document.createElement("span");
+
+    statusText.className =
+        "gift-status-text";
+
+    status.append(statusText);
+
+    item.append(status);
+
+
+    /*
+        Claim/unclaim button
+    */
+
+    const claimButton =
+        document.createElement("button");
+
+    claimButton.className =
+        "button button--primary claim-button";
+
+    claimButton.type = "button";
 
 
     if (!currentUser) {
@@ -98,26 +452,20 @@ function displayGift(
             "aria-pressed",
             "false"
         );
+    } else if (!isClaimed) {
+        statusText.textContent =
+            "Available";
 
-        return;
-    }
+        claimButton.textContent =
+            "Claim gift";
 
-
-    if (!isClaimed) {
-        statusText.textContent = "Available";
-        claimButton.textContent = "Claim gift";
         claimButton.disabled = false;
 
         claimButton.setAttribute(
             "aria-pressed",
             "false"
         );
-
-        return;
-    }
-
-
-    if (isOwnedByCurrentUser) {
+    } else if (isOwnedByCurrentUser) {
         statusText.textContent =
             "Claimed by you";
 
@@ -130,40 +478,309 @@ function displayGift(
             "aria-pressed",
             "true"
         );
+    } else {
+        statusText.textContent =
+            "Claimed";
+
+        claimButton.textContent =
+            "Already claimed";
+
+        claimButton.disabled = true;
+
+        claimButton.setAttribute(
+            "aria-pressed",
+            "false"
+        );
+    }
+
+
+    claimButton.addEventListener(
+        "click",
+
+        function () {
+            handleGiftAction(
+                giftId,
+                giftName,
+                claimButton
+            );
+        }
+    );
+
+
+    item.append(claimButton);
+
+    return item;
+}
+
+
+/* ========================================
+   DISPLAY ALL FIRESTORE GIFTS
+   ======================================== */
+
+function renderWishlist() {
+    if (!wishlistGrid) {
+        return;
+    }
+
+
+    const gifts =
+        Array.from(
+            giftsById.entries()
+        );
+
+
+    /*
+        Sort by the Firestore order field.
+
+        Gifts without an order value are placed
+        after the numbered gifts.
+    */
+
+    gifts.sort(
+        function (
+            firstGift,
+            secondGift
+        ) {
+            const firstId =
+                firstGift[0];
+
+            const secondId =
+                secondGift[0];
+
+            const firstData =
+                firstGift[1];
+
+            const secondData =
+                secondGift[1];
+
+
+            const firstOrder =
+                typeof firstData.order === "number"
+                    ? firstData.order
+                    : Number.MAX_SAFE_INTEGER;
+
+            const secondOrder =
+                typeof secondData.order === "number"
+                    ? secondData.order
+                    : Number.MAX_SAFE_INTEGER;
+
+
+            if (firstOrder !== secondOrder) {
+                return firstOrder - secondOrder;
+            }
+
+
+            return firstId.localeCompare(
+                secondId,
+                undefined,
+                {
+                    numeric: true
+                }
+            );
+        }
+    );
+
+
+    wishlistGrid.replaceChildren();
+
+
+    if (gifts.length === 0) {
+        const emptyMessage =
+            document.createElement("p");
+
+        emptyMessage.className =
+            "wishlist-empty";
+
+        emptyMessage.textContent =
+            "No wishlist items have been added yet.";
+
+        wishlistGrid.append(
+            emptyMessage
+        );
 
         return;
     }
 
 
-    statusText.textContent = "Claimed";
+    const fragment =
+        document.createDocumentFragment();
 
-    claimButton.textContent =
-        "Already claimed";
 
-    claimButton.disabled = true;
+    gifts.forEach(
+        function (
+            [giftId, giftData]
+        ) {
+            const giftCard =
+                createGiftCard(
+                    giftId,
+                    giftData
+                );
 
-    claimButton.setAttribute(
-        "aria-pressed",
-        "false"
+            fragment.append(
+                giftCard
+            );
+        }
+    );
+
+
+    wishlistGrid.append(
+        fragment
     );
 }
 
 
-function refreshAllGiftDisplays() {
-    wishlistItems.forEach(function (item) {
-        const giftId = item.dataset.giftId;
+/* ========================================
+   CLAIM OR UNCLAIM A GIFT
+   ======================================== */
 
-        if (!giftId) {
-            return;
+async function handleGiftAction(
+    giftId,
+    giftName,
+    claimButton
+) {
+    if (!currentUser) {
+        window.location.href =
+            "./account.html?return=wishlist.html";
+
+        return;
+    }
+
+
+    claimButton.disabled = true;
+
+    showWishlistMessage("");
+
+
+    const giftReference =
+        doc(
+            db,
+            "gifts",
+            giftId
+        );
+
+
+    try {
+        let actionPerformed = "";
+
+
+        await runTransaction(
+            db,
+
+            async function (transaction) {
+                const giftSnapshot =
+                    await transaction.get(
+                        giftReference
+                    );
+
+
+                if (!giftSnapshot.exists()) {
+                    throw new Error(
+                        "This gift no longer exists."
+                    );
+                }
+
+
+                const latestGiftData =
+                    giftSnapshot.data();
+
+                const isClaimed =
+                    latestGiftData.claimed === true;
+
+
+                /*
+                    Claim an available gift.
+                */
+
+                if (!isClaimed) {
+                    transaction.update(
+                        giftReference,
+                        {
+                            claimed: true,
+
+                            claimedBy:
+                                currentUser.uid,
+
+                            claimedAt:
+                                serverTimestamp()
+                        }
+                    );
+
+                    actionPerformed =
+                        "claimed";
+
+                    return;
+                }
+
+
+                /*
+                    Only the user who claimed the
+                    gift may make it available again.
+                */
+
+                if (
+                    latestGiftData.claimedBy ===
+                    currentUser.uid
+                ) {
+                    transaction.update(
+                        giftReference,
+                        {
+                            claimed: false,
+                            claimedBy: null,
+                            claimedAt: null
+                        }
+                    );
+
+                    actionPerformed =
+                        "unclaimed";
+
+                    return;
+                }
+
+
+                throw new Error(
+                    "This gift has already been claimed by another guest."
+                );
+            }
+        );
+
+
+        if (actionPerformed === "claimed") {
+            showWishlistMessage(
+                `${giftName} has been claimed by you.`
+            );
         }
 
-        displayGift(
-            item,
-            giftDataById.get(giftId)
+
+        if (actionPerformed === "unclaimed") {
+            showWishlistMessage(
+                `${giftName} is available again.`
+            );
+        }
+    } catch (error) {
+        console.error(
+            "Gift transaction error:",
+            error
         );
-    });
+
+        showWishlistMessage(
+            error.message ||
+            "The gift could not be updated.",
+            true
+        );
+
+        /*
+            Restore the button using the most
+            recent Firestore information.
+        */
+
+        renderWishlist();
+    }
 }
 
+
+/* ========================================
+   AUTHENTICATION STATUS
+   ======================================== */
 
 onAuthStateChanged(
     auth,
@@ -171,17 +788,8 @@ onAuthStateChanged(
     function (user) {
         currentUser = user;
 
-        refreshAllGiftDisplays();
-
-        if (user) {
-            showWishlistMessage(
-                "You are signed in and can manage your gift claims."
-            );
-        } else {
-            showWishlistMessage(
-                "Sign in or create an account to claim a gift."
-            );
-        }
+        renderWishlist();
+        showDefaultWishlistMessage();
     },
 
     function (error) {
@@ -198,204 +806,70 @@ onAuthStateChanged(
 );
 
 
-wishlistItems.forEach(function (item) {
-    const giftId = item.dataset.giftId;
+/* ========================================
+   READ THE FIRESTORE GIFTS COLLECTION
+   ======================================== */
 
-    const statusText =
-        item.querySelector(".gift-status-text");
-
-    const claimButton =
-        item.querySelector(".claim-button");
-
-    if (
-        !giftId ||
-        !statusText ||
-        !claimButton
-    ) {
-        return;
-    }
+if (wishlistGrid) {
+    showWishlistMessage(
+        "Loading wishlist..."
+    );
 
 
-    const giftReference =
-        doc(db, "gifts", giftId);
-
-
-    statusText.textContent = "Loading...";
-
-    claimButton.disabled = true;
+    const giftsCollection =
+        collection(
+            db,
+            "gifts"
+        );
 
 
     onSnapshot(
-        giftReference,
+        giftsCollection,
 
         function (snapshot) {
-            if (!snapshot.exists()) {
-                statusText.textContent =
-                    "Not configured";
+            const isFirstSnapshot =
+                !hasLoadedWishlist;
 
-                claimButton.textContent =
-                    "Unavailable";
+            giftsById.clear();
 
-                claimButton.disabled = true;
 
-                return;
+            snapshot.forEach(
+                function (giftDocument) {
+                    giftsById.set(
+                        giftDocument.id,
+                        giftDocument.data()
+                    );
+                }
+            );
+
+
+            hasLoadedWishlist = true;
+
+            renderWishlist();
+
+
+            /*
+                Do not replace a successful claim
+                message every time Firestore updates.
+            */
+
+            if (isFirstSnapshot) {
+                showDefaultWishlistMessage();
             }
-
-            const giftData = snapshot.data();
-
-            giftDataById.set(
-                giftId,
-                giftData
-            );
-
-            displayGift(
-                item,
-                giftData
-            );
         },
 
         function (error) {
             console.error(
-                `Gift listener error for ${giftId}:`,
+                "Wishlist collection error:",
                 error
             );
 
-            statusText.textContent =
-                "Unable to load";
-
-            claimButton.textContent =
-                "Unavailable";
-
-            claimButton.disabled = true;
+            wishlistGrid.replaceChildren();
 
             showWishlistMessage(
-                "The wishlist could not be loaded.",
+                "The wishlist could not be loaded from Firebase.",
                 true
             );
         }
     );
-
-
-    claimButton.addEventListener(
-        "click",
-
-        async function () {
-            if (!currentUser) {
-                window.location.href =
-                    "account.html?return=wishlist.html";
-
-                return;
-            }
-
-
-            claimButton.disabled = true;
-
-            showWishlistMessage("");
-
-
-            try {
-                let actionPerformed = "";
-
-                await runTransaction(
-                    db,
-
-                    async function (transaction) {
-                        const snapshot =
-                            await transaction.get(
-                                giftReference
-                            );
-
-                        if (!snapshot.exists()) {
-                            throw new Error(
-                                "This gift was not found."
-                            );
-                        }
-
-                        const giftData =
-                            snapshot.data();
-
-                        const isClaimed =
-                            giftData.claimed === true;
-
-
-                        if (!isClaimed) {
-                            transaction.update(
-                                giftReference,
-                                {
-                                    claimed: true,
-                                    claimedBy:
-                                        currentUser.uid,
-                                    claimedAt:
-                                        serverTimestamp()
-                                }
-                            );
-
-                            actionPerformed = "claimed";
-
-                            return;
-                        }
-
-
-                        if (
-                            giftData.claimedBy ===
-                            currentUser.uid
-                        ) {
-                            transaction.update(
-                                giftReference,
-                                {
-                                    claimed: false,
-                                    claimedBy: null,
-                                    claimedAt: null
-                                }
-                            );
-
-                            actionPerformed =
-                                "unclaimed";
-
-                            return;
-                        }
-
-
-                        throw new Error(
-                            "This gift has already been claimed by another guest."
-                        );
-                    }
-                );
-
-
-                const giftName =
-                    getGiftName(item);
-
-
-                if (actionPerformed === "claimed") {
-                    showWishlistMessage(
-                        `${giftName} has been claimed by you.`
-                    );
-                }
-
-
-                if (actionPerformed === "unclaimed") {
-                    showWishlistMessage(
-                        `${giftName} is available again.`
-                    );
-                }
-            } catch (error) {
-                console.error(
-                    "Gift transaction error:",
-                    error
-                );
-
-                showWishlistMessage(
-                    error.message ||
-                    "The gift could not be updated.",
-                    true
-                );
-
-                displayGift(
-                    item,
-                    giftDataById.get(giftId)
-                );
-            }
-        }
-    );
-});
+}

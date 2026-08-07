@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <meta
         name="description"
@@ -11,118 +15,99 @@
 
     <title>Wishlist | droo's 20th Birthday</title>
 
-    <link rel="stylesheet" href="style.css">
-    <script type="module" src="wishlist.js"></script>
+    <link rel="stylesheet" href="./style.css">
+
+    <script
+        type="module"
+        src="./wishlist.js"
+    ></script>
+
+    <link rel="icon" type="image/png" href="suisei.jpg">
 </head>
 
 <body>
     <header class="site-header">
         <div class="container">
-            <h1 class="site-title">droo's 20th Birthday</h1>
-            <nav class="site-nav" aria-label="Main navigation">
+            <div class="header-title-group">
+                <h1 class="site-title">
+                    droo's 20th Birthday 🎉
+                </h1>
+
+                <img
+                    class="header-decoration"
+                    src="suisei2.webp"
+                    alt=""
+                >
+            </div>
+
+            <nav
+                class="site-nav"
+                aria-label="Main navigation"
+            >
                 <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="details.html">Details</a></li>
-                    <li><a href="wishlist.html" aria-current="page">Wishlist</a></li>
-                    <li> <a href="account.html">Account</a> </li>
+                    <li>
+                        <a href="./index.html">
+                            Home
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="./details.html">
+                            Details
+                        </a>
+                    </li>
+
+                    <li>
+                        <a
+                            href="./wishlist.html"
+                            aria-current="page"
+                        >
+                            Wishlist
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="./account.html">
+                            Account
+                        </a>
+                    </li>
                 </ul>
             </nav>
         </div>
     </header>
 
     <main id="main-content">
-        <section class="section wishlist" aria-labelledby="wishlist-title">
+        <section
+            class="section wishlist"
+            aria-labelledby="wishlist-title"
+        >
             <div class="container">
                 <header class="section-heading">
-                    <p class="eyebrow">Gift ideas</p>
-                    <h1 id="wishlist-title">droo's Wishlist</h1>
+                    <p class="eyebrow">
+                        Gift ideas
+                    </p>
+
+                    <h1 id="wishlist-title">
+                        droo's Wishlist 🎁
+                    </h1>
 
                     <p>
-                        You may claim a gift that you are planning to give.
-                        This helps prevent other guests from choosing the same gift.
+                        You may claim a gift that you are planning
+                        to give. This helps prevent other guests
+                        from choosing the same gift. Sign in with Google to claim or unclaim gifts. <br>
+                        <br>P.S. Gifts are not required, but are very much appreciated :D! 
                     </p>
                 </header>
 
-                <div class="wishlist-grid">
-                    <article class="wishlist-item" data-gift-id="gift-1">
-                        <h2>Gift Item 1</h2>
-
-                        <p>
-                            Add a short description or preferred variation here.
-                        </p>
-
-                        <p class="gift-status">
-                            Status:
-                            <span class="gift-status-text">Available</span>
-                        </p>
-
-                        <button
-                            class="button button--primary claim-button"
-                            type="button"
-                        >
-                            Claim gift
-                        </button>
-                    </article>
-
-                    <article class="wishlist-item" data-gift-id="gift-2">
-                        <h2>Gift Item 2</h2>
-
-                        <p>
-                            Add a short description or preferred variation here.
-                        </p>
-
-                        <p class="gift-status">
-                            Status:
-                            <span class="gift-status-text">Available</span>
-                        </p>
-
-                        <button
-                            class="button button--primary claim-button"
-                            type="button"
-                        >
-                            Claim gift
-                        </button>
-                    </article>
-
-                    <article class="wishlist-item" data-gift-id="gift-3">
-                        <h2>Gift Item 3</h2>
-
-                        <p>
-                            Add a short description or preferred variation here.
-                        </p>
-
-                        <p class="gift-status">
-                            Status:
-                            <span class="gift-status-text">Available</span>
-                        </p>
-
-                        <button
-                            class="button button--primary claim-button"
-                            type="button"
-                        >
-                            Claim gift
-                        </button>
-                    </article>
-
-                    <article class="wishlist-item" data-gift-id="gift-4">
-                        <h2>Gift Item 4</h2>
-
-                        <p>
-                            Add a short description or preferred variation here.
-                        </p>
-
-                        <p class="gift-status">
-                            Status:
-                            <span class="gift-status-text">Available</span>
-                        </p>
-
-                        <button
-                            class="button button--primary claim-button"
-                            type="button"
-                        >
-                            Claim gift
-                        </button>
-                    </article>
+                <!-- Gift cards are created from Firestore here. -->
+                <div
+                    id="wishlist-grid"
+                    class="wishlist-grid"
+                    aria-live="polite"
+                >
+                    <p class="wishlist-loading">
+                        Loading wishlist...
+                    </p>
                 </div>
 
                 <p

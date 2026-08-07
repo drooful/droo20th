@@ -178,6 +178,51 @@ p {
     background-color: var(--blue);
 }
 
+/* ========================================
+   HEADER DECORATIVE IMAGE
+   ======================================== */
+
+.header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.header-decoration {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+
+    object-fit: cover;
+
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+}
+
+
+/* Larger version for the homepage header */
+
+.home-page .header-title-group {
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: clamp(20px, 4vw, 60px);
+}
+
+.home-page .header-decoration {
+    width: clamp(130px, 16vw, 220px);
+    height: clamp(130px, 16vw, 220px);
+
+    margin-bottom: 6px;
+
+    object-fit: cover;
+
+    border: 1px solid var(--border-light);
+    border-radius: var(--medium-radius);
+    box-shadow: var(--shadow);
+}
 
 /* ========================================
    HOME PAGE HEADER
@@ -714,6 +759,92 @@ textarea {
     font-weight: 700;
 }
 
+/* ========================================
+   FIRESTORE WISHLIST CONTENT
+   ======================================== */
+
+.wishlist-loading,
+.wishlist-empty {
+    grid-column: 1 / -1;
+    padding: 30px;
+    color: var(--text-secondary);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--medium-radius);
+    text-align: center;
+}
+
+
+.gift-image-link,
+.gift-image-frame {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    display: block;
+    margin-bottom: 24px;
+    overflow: hidden;
+
+    background-color: var(--surface-light);
+    border: 1px solid var(--border-light);
+    border-radius: var(--small-radius);
+}
+
+
+.gift-image-link {
+    cursor: pointer;
+}
+
+
+.gift-image {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+
+    transition:
+        transform 0.25s ease,
+        filter 0.25s ease;
+}
+
+
+.gift-image-link:hover .gift-image,
+.gift-image-link:focus-visible .gift-image {
+    transform: scale(1.045);
+    filter: brightness(1.08);
+}
+
+
+.gift-description {
+    color: var(--text-secondary);
+}
+
+.gift-price {
+    margin-top: -14px;
+    margin-bottom: 20px;
+
+    color: var(--peach);
+    font-family: "Poppins", Arial, sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.gift-product-link {
+    display: inline-block;
+    margin-bottom: 24px;
+
+    color: var(--peach);
+    font-family: "Poppins", Arial, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+}
+
+
+.gift-product-link:hover,
+.gift-product-link:focus-visible {
+    color: var(--blue);
+}
+
 
 /* ========================================
    CLAIMED WISHLIST ITEMS
@@ -960,7 +1091,7 @@ textarea {
     }
 
     .home-page .site-title {
-        font-size: clamp(3.2rem, 17vw, 5rem);
+        font-size: clamp(2.5rem, 50vw, 3.5rem);
     }
 
     .site-nav a {
@@ -995,11 +1126,26 @@ textarea {
         }
 
     .hero-image--primary {
-        width: 72%;
+        width: 62%;
     }
 
     .hero-image--secondary {
         width: 82%;
         bottom: 35px;
+        left: 120px;
+    }
+
+    .home-page .header-title-group {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    }
+
+    .home-page .header-decoration {
+        width: clamp(75px, 25vw, 110px);
+        height: clamp(75px, 25vw, 110px);
+        margin-right: 10px;
+        margin-bottom: 2px;
+        border-radius: 12px;
     }
 }

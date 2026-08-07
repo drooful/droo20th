@@ -132,7 +132,7 @@ onAuthStateChanged(
             );
         } else {
             showAuthMessage(
-                "Sign in with Google to manage a gift."
+                "You are currently not signed in. Sign in with Google to manage your gift/s."
             );
         }
     },
